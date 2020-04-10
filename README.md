@@ -6,9 +6,13 @@ The source code for the IAR (Inobulles ARchive) file format command-line utility
 Here is a list of all the command-line arguments you can pass to `iar` and what they do:
 
 `--help`: Print out help.
+
 `--version`: Print out version.
+
 `--pack [files]`: Pack the given files.
+
 `--unpack [IAR file]`: Unpack the given IAR archive file.
+
 `--output [output path]`: Output to the given destination path.
 
 ## Building
