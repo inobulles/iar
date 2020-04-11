@@ -17,6 +17,8 @@ Here is a list of all the command-line arguments you can pass to `iar` and what 
 
 `--verbose`: Give verbose output.
 
+`--use [version number]`: Use specific version number.
+
 ## Building
 
 On Linux, build with

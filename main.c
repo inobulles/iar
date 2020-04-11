@@ -8,8 +8,11 @@
 #include <sys/stat.h> // for mkdir
 
 #ifndef VERSION
-	#define VERSION 0
+	#define VERSION 0 // this is the *latest* version supported by this utility
 #endif
+
+static uint8_t verbose = 0;
+static uint64_t version = VERSION;
 
 #define MAGIC 0x1A4C1A4C1A4C1A4C
 
@@ -19,7 +22,7 @@ typedef struct {
 	uint64_t root_node_offset;
 } iar_header_t;
 
-typedef struct iar_node_s {
+typedef struct {
 	uint64_t node_count          : 64;
 	uint64_t node_offsets_offset : 64;
 	uint64_t name_offset         : 64;
@@ -29,7 +32,6 @@ typedef struct iar_node_s {
 
 static uint8_t* working_data = (uint8_t*) 0;
 static uint64_t working_data_bytes = 0;
-static uint8_t verbose = 0;
 
 static uint64_t pack_walk(const char* path, const char* name) { // return offset, -1 if failure
 	char path_buffer[PATH_MAX + 1];
@@ -189,11 +191,12 @@ int main(int argc, char** argv) {
 			if (strcmp(option, "help") == 0) {
 				printf("IAR command-line utility help\n");
 				printf("`--help`: Print out help.\n");
-				printf("`--version`: Print out version.\n");
+				printf("`--version`: Print out maximum supported IAR version.\n");
 				printf("`--pack [files]`: Pack the given files.\n");
 				printf("`--unpack [IAR file]`: Unpack the given IAR archive file.\n");
 				printf("`--output [output path]`: Output to the given destination path.\n");
 				printf("`--verbose`: Give verbose output.\n");
+				printf("`--use [version number]`: Use specific version number.\n");
 				
 				goto success_condition;
 				
@@ -201,8 +204,14 @@ int main(int argc, char** argv) {
 				printf("Outputting verbosely ...\n");
 				verbose = 1;
 				
+			} else if (strcmp(option, "use") == 0) {
+				if ((version = atoll(argv[i++ + 1])) > VERSION) {
+					fprintf(stderr, "ERROR Provided version number (%lu) is unsupported by this utility (this utility only supports versions up to %d)\n", use_version, VERSION);
+					goto error_condition;
+				}
+				
 			} else if (strcmp(option, "version") == 0) {
-				printf("IAR version %d command-line utility\n", VERSION);
+				printf("Command-line utility supports up to IAR version %d\n", VERSION);
 				goto success_condition;
 				
 			} else if (strcmp(option, "output") == 0) {
@@ -238,7 +247,7 @@ int main(int argc, char** argv) {
 	}
 	
 	if (mode == MODE_PACK) {
-		iar_header_t header = { .magic = MAGIC, .version = VERSION };
+		iar_header_t header = { .magic = MAGIC, .version = version };
 		working_data_bytes = sizeof(header) + sizeof(iar_node_t);
 		working_data = (uint8_t*) malloc(working_data_bytes);
 		
