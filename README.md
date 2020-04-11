@@ -15,6 +15,8 @@ Here is a list of all the command-line arguments you can pass to `iar` and what 
 
 `--output [output path]`: Output to the given destination path.
 
+`--verbose`: Give verbose output.
+
 ## Building
 
 On Linux, build with
