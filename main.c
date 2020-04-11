@@ -23,11 +23,11 @@ typedef struct {
 } iar_header_t;
 
 typedef struct {
-	uint64_t node_count          : 64;
-	uint64_t node_offsets_offset : 64;
-	uint64_t name_offset         : 64;
-	uint64_t data_bytes          : 64;
-	uint64_t data_offset         : 64;
+	uint64_t node_count;
+	uint64_t node_offsets_offset;
+	uint64_t name_offset;
+	uint64_t data_bytes;
+	uint64_t data_offset;
 } iar_node_t;
 
 static uint8_t* working_data = (uint8_t*) 0;
