@@ -205,7 +205,7 @@ int main(int argc, char** argv) {
 				verbose = 1;
 				
 			} else if (strcmp(option, "use") == 0) {
-				if ((version = atoll(argv[i++ + 1])) > VERSION) {
+				if ((version = atoll(argv[++i])) > VERSION) {
 					fprintf(stderr, "ERROR Provided version number (%lu) is unsupported by this utility (this utility only supports versions up to %d)\n", version, VERSION);
 					goto error_condition;
 				}
@@ -215,7 +215,7 @@ int main(int argc, char** argv) {
 				goto success_condition;
 				
 			} else if (strcmp(option, "output") == 0) {
-				pack_output = unpack_output = argv[i++ + 1];
+				pack_output = unpack_output = argv[++i];
 				
 			} else if (strcmp(option, "pack") == 0) {
 				if (mode == MODE_UNPACK) {
@@ -224,7 +224,7 @@ int main(int argc, char** argv) {
 				}
 				
 				mode = MODE_PACK;
-				pack_directory = argv[i++ + 1];
+				pack_directory = argv[++i];
 				
 			} else if (strcmp(option, "unpack") == 0) {
 				if (mode == MODE_PACK) {
@@ -233,7 +233,7 @@ int main(int argc, char** argv) {
 				}
 				
 				mode = MODE_UNPACK;
-				unpack_file = argv[i++ + 1];
+				unpack_file = argv[++i];
 				
 			} else {
 				fprintf(stderr, "ERROR Option `--%s` is unknown. Run `iar --help` to see a list of available options\n", option);
