@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <dirent.h>
 #include <limits.h> // for PATH_MAX
+#include <sys/stat.h> // for mkdir
 
 #ifndef VERSION
 	#define VERSION 0
@@ -26,28 +27,29 @@ typedef struct iar_node_s {
 	uint64_t data_offset         : 64;
 } iar_node_t;
 
-static uint8_t* pack_output_data = (uint8_t*) 0;
-static uint64_t pack_output_data_bytes = 0;
+static uint8_t* working_data = (uint8_t*) 0;
+static uint64_t working_data_bytes = 0;
+static uint8_t verbose = 0;
 
-static uint64_t walk(const char* path, const char* name) { // return offset, -1 if failure
+static uint64_t pack_walk(const char* path, const char* name) { // return offset, -1 if failure
 	char path_buffer[PATH_MAX + 1];
 	memset(path_buffer, 0, sizeof(path_buffer));
 	
 	// first, allocate space for storing the node itself
 	
-	uint64_t offset = pack_output_data_bytes;
-	pack_output_data_bytes += sizeof(iar_node_t);
-	pack_output_data = (uint8_t*) realloc(pack_output_data, pack_output_data_bytes);
-	iar_node_t* node = (iar_node_t*) (pack_output_data + offset);
+	uint64_t offset = working_data_bytes;
+	working_data_bytes += sizeof(iar_node_t);
+	working_data = (uint8_t*) realloc(working_data, working_data_bytes);
+	iar_node_t* node = (iar_node_t*) (working_data + offset);
 	
 	// then, allocate space for storing the node name
 	
 	uint64_t name_length = strlen(name) + 1;
-	node->name_offset = pack_output_data_bytes;
-	pack_output_data_bytes += name_length;
-	pack_output_data = (uint8_t*) realloc(pack_output_data, pack_output_data_bytes);
-	node = (iar_node_t*) (pack_output_data + offset); // !!!don't forget to update this, since realloc is not guarenteed to stay in place!!!
-	memcpy(pack_output_data + pack_output_data_bytes - name_length, name, name_length);
+	node->name_offset = working_data_bytes;
+	working_data_bytes += name_length;
+	working_data = (uint8_t*) realloc(working_data, working_data_bytes);
+	node = (iar_node_t*) (working_data + offset); // !!!don't forget to update this, since realloc is not guaranteed to stay in place!!!
+	memcpy(working_data + node->name_offset, name, name_length);
 	
 	// btw, the order of what comes where is not specified by the standard
 	// as long as all offsets point to the right place, you've got nothing to worry about
@@ -64,7 +66,9 @@ static uint64_t walk(const char* path, const char* name) { // return offset, -1 
 			return -1;
 		}
 		
-		printf("Found file at %s\n", path);
+		if (verbose) {
+			printf("Unpacking file at %s ...\n", path);
+		}
 		
 		fseek(fp, 0, SEEK_END);
 		node->data_bytes = ftell(fp);
@@ -72,17 +76,19 @@ static uint64_t walk(const char* path, const char* name) { // return offset, -1 
 		
 		// allocate space for all the data and write to it
 		
-		pack_output_data_bytes += node->data_bytes;
-		node->data_offset = pack_output_data_bytes;
-		pack_output_data = (uint8_t*) realloc(pack_output_data, pack_output_data_bytes);
-		node = (iar_node_t*) (pack_output_data + offset);
-		fread(pack_output_data + pack_output_data_bytes - node->data_bytes, node->data_bytes, 1, fp);
+		node->data_offset = working_data_bytes;
+		working_data_bytes += node->data_bytes;
+		working_data = (uint8_t*) realloc(working_data, working_data_bytes);
+		node = (iar_node_t*) (working_data + offset);
+		fread(working_data + working_data_bytes - node->data_bytes, node->data_bytes, 1, fp);
 		
 		fclose(fp);
 		goto end;
 	}
 	
-	printf("Found directory at %s\n", path);
+	if (verbose) {
+		printf("Packing directory at %s ...\n", path);
+	}
 	
 	// handle directories
 	
@@ -96,8 +102,8 @@ static uint64_t walk(const char* path, const char* name) { // return offset, -1 
 	while ((entry = readdir(dp)) != (void*) 0) if (strcmp(entry->d_name, ".") && strcmp(entry->d_name, "..")) {
 		sprintf(path_buffer, *path ? "%s/%s" : "%s%s", path, entry->d_name);
 		
-		uint64_t child_offset = walk(path_buffer, entry->d_name);
-		node = (iar_node_t*) (pack_output_data + offset);
+		uint64_t child_offset = pack_walk(path_buffer, entry->d_name);
+		node = (iar_node_t*) (working_data + offset);
 		
 		if ((node_offsets_buffer[node->node_count] = child_offset) == -1) {
 			free(node_offsets_buffer); // needs to be freed to prevent memory leaks
@@ -111,17 +117,51 @@ static uint64_t walk(const char* path, const char* name) { // return offset, -1 
 	// now i can finally allocate space for the offsets
 	
 	uint64_t node_offsets_size = node->node_count * sizeof(uint64_t);
-	node->node_offsets_offset = pack_output_data_bytes;
-	pack_output_data_bytes += node_offsets_size;
-	pack_output_data = (uint8_t*) realloc(pack_output_data, pack_output_data_bytes);
-	node = (iar_node_t*) (pack_output_data + offset);
-	memcpy(pack_output_data + pack_output_data_bytes - node_offsets_size, node_offsets_buffer, node_offsets_size);
+	node->node_offsets_offset = working_data_bytes;
+	working_data_bytes += node_offsets_size;
+	working_data = (uint8_t*) realloc(working_data, working_data_bytes);
+	node = (iar_node_t*) (working_data + offset);
+	memcpy(working_data + working_data_bytes - node_offsets_size, node_offsets_buffer, node_offsets_size);
 	
 	// now just return the offset for the parent and we're done
 	
 	free(node_offsets_buffer); // needs to be freed to prevent memory leaks
 	closedir(dp);
 	end: return offset;
+}
+
+static int unpack_walk(const char* path, iar_node_t* node) {
+	char path_buffer[PATH_MAX + 1];
+	sprintf(path_buffer, *path ? "%s/%s" : "%s%s", path, working_data + node->name_offset);
+	
+	if (node->data_offset) { // handle files
+		if (verbose) {
+			printf("Unpacking file at %s ...\n", path_buffer);
+		}
+		
+		FILE* fp = fopen(path_buffer, "w");
+		if (!fp) {
+			fprintf(stderr, "ERROR Failed to open `%s`\n", path_buffer);
+			return 1;
+		}
+		
+		fwrite((const void*) (working_data + node->data_offset), node->data_bytes, 1, fp);
+		fclose(fp);
+		return 0;
+	}
+	
+	// handle directories
+	
+	if (verbose) {
+		printf("Unpacking directory at %s ...\n", path_buffer);
+	}
+	
+	mkdir(path_buffer, 0700);
+	for (int i = 0; i < node->node_count; i++) if (unpack_walk(path_buffer, (iar_node_t*) (working_data + ((uint64_t*) (working_data + node->node_offsets_offset))[i]))) {
+		return 1;
+	}
+	
+	return 0;
 }
 
 #define MODE_UNKNOWN 0
@@ -137,7 +177,7 @@ int main(int argc, char** argv) {
 	uint8_t mode = MODE_UNKNOWN;
 	
 	char* pack_output = "output.iar";
-	char* unpack_output = "output/";
+	char* unpack_output = "output";
 	
 	char* unpack_file = (char*) 0;
 	char* pack_directory = (char*) 0;
@@ -153,8 +193,13 @@ int main(int argc, char** argv) {
 				printf("`--pack [files]`: Pack the given files.\n");
 				printf("`--unpack [IAR file]`: Unpack the given IAR archive file.\n");
 				printf("`--output [output path]`: Output to the given destination path.\n");
+				printf("`--verbose`: Give verbose output.\n");
 				
 				goto success_condition;
+				
+			} else if (strcmp(option, "verbose") == 0) {
+				printf("Outputting verbosely ...\n");
+				verbose = 1;
 				
 			} else if (strcmp(option, "version") == 0) {
 				printf("IAR version %d command-line utility\n", VERSION);
@@ -194,12 +239,19 @@ int main(int argc, char** argv) {
 	
 	if (mode == MODE_PACK) {
 		iar_header_t header = { .magic = MAGIC, .version = VERSION };
-		pack_output_data_bytes = sizeof(header) + sizeof(iar_node_t);
-		pack_output_data = (uint8_t*) malloc(pack_output_data_bytes);
-		memcpy(pack_output_data, &header, sizeof(header));
+		working_data_bytes = sizeof(header) + sizeof(iar_node_t);
+		working_data = (uint8_t*) malloc(working_data_bytes);
 		
-		if ((header.root_node_offset = walk(pack_directory, pack_directory)) == -1) {
-			goto error_condition; // no need for printing out error message; `walk` will do it for us
+		if (verbose) {
+			printf("Walking through pack_directory (%s) ...\n", pack_directory);
+		}
+		
+		if ((header.root_node_offset = pack_walk(pack_directory, pack_directory)) == -1) {
+			goto error_condition; // no need for printing out error message; pack_walk will do it for us
+		}
+		
+		if (verbose) {
+			printf("Writing to pack_output (%s) ...\n", pack_output);
 		}
 		
 		FILE* fp = fopen(pack_output, "w");
@@ -208,18 +260,67 @@ int main(int argc, char** argv) {
 			goto error_condition;
 		}
 		
-		fwrite((const void*) pack_output_data, pack_output_data_bytes, 1, fp);
+		memcpy(working_data, &header, sizeof(header));
+		fwrite((const void*) working_data, working_data_bytes, 1, fp);
 		fclose(fp);
 		
 	} else if (mode == MODE_UNPACK) {
-		fprintf(stderr, "ERROR Unpacking is not yet supported by this command-line utility\n");
-		goto error_condition;
+		if (verbose) {
+			printf("Reading unpack_file (%s) ...\n", unpack_file);
+		}
+				
+		FILE* fp = fopen(unpack_file, "r");
+		if (!fp) {
+			fprintf(stderr, "ERROR Couldn't open `%s`\n", unpack_file);
+			goto error_condition;
+		}
+		
+		fseek(fp, 0, SEEK_END);
+		working_data_bytes = ftell(fp);
+		rewind(fp);
+		
+		working_data = (uint8_t*) malloc(working_data_bytes);
+		fread(working_data, working_data_bytes, 1, fp);
+		fclose(fp);
+		
+		if (verbose) {
+			printf("Making sure header is valid ...\n");
+		}
+		
+		iar_header_t* header = (iar_header_t*) working_data;
+		if (header->magic != MAGIC) {
+			fprintf(stderr, "ERROR Provided file is not a valid IAR file\n");
+			goto error_condition;
+		}
+		
+		if (header->version > VERSION) {
+			fprintf(stderr, "ERROR Provided file is of an unsupported version (%lu, this utility only supports versions up to %d)\n", header->version, VERSION);
+			goto error_condition;
+		}
+		
+		mkdir(unpack_output, 0700);
+		iar_node_t* root_node = (iar_node_t*) (working_data + header->root_node_offset);
+		
+		if (verbose) {
+			printf("Walking through unpack_file ...\n");
+		}
+		
+		for (int i = 0; i < root_node->node_count; i++) if (unpack_walk(unpack_output, (iar_node_t*) (working_data + ((uint64_t*) (working_data + root_node->node_offsets_offset))[i]))) { // we need to iterate over the root node ourselves since, unlike other directory nodes, its directory has already been made
+			goto error_condition; // again, no need for printing out error message; unpack_walk will do it for us
+		}
 	}
 	
 	// tbh i dont't really care about freeing stuff
 	// in all fairness, i'm pretty sure i can avoid memory leaks in such a simple program
 	// also, it would hurt readability to handle all the freeing so eh
 	
-	success_condition: return 0;
-	error_condition: return 1;
+	success_condition:
+	if (verbose) {
+		printf("Program finished successfully\n");
+	}
+	
+	return 0;
+	
+	error_condition:
+	return 1;
 }

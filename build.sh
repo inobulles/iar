@@ -2,7 +2,7 @@
 set -e
 
 echo "Compiling source ..."
-gcc main.c -o iar
+gcc -g main.c -o iar
 
 echo "Moving binary to /bin ..."
 sudo mv iar /bin
