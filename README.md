@@ -7,7 +7,7 @@ Here is a list of all the command-line arguments you can pass to `iar` and what 
 
 `--help`: Print out help.
 
-`--version`: Print out version.
+`--version`: Print out maximum supported IAR version.
 
 `--pack [files]`: Pack the given files.
 

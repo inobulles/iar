@@ -206,7 +206,7 @@ int main(int argc, char** argv) {
 				
 			} else if (strcmp(option, "use") == 0) {
 				if ((version = atoll(argv[i++ + 1])) > VERSION) {
-					fprintf(stderr, "ERROR Provided version number (%lu) is unsupported by this utility (this utility only supports versions up to %d)\n", use_version, VERSION);
+					fprintf(stderr, "ERROR Provided version number (%lu) is unsupported by this utility (this utility only supports versions up to %d)\n", version, VERSION);
 					goto error_condition;
 				}
 				
