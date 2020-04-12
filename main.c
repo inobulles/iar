@@ -25,7 +25,10 @@ typedef struct {
 typedef struct {
 	uint64_t node_count;
 	uint64_t node_offsets_offset;
+	
+	uint64_t name_bytes;
 	uint64_t name_offset;
+	
 	uint64_t data_bytes;
 	uint64_t data_offset;
 } iar_node_t;
@@ -46,12 +49,13 @@ static uint64_t pack_walk(const char* path, const char* name) { // return offset
 	
 	// then, allocate space for storing the node name
 	
-	uint64_t name_length = strlen(name) + 1;
+	node->name_bytes = strlen(name) + 1;
 	node->name_offset = working_data_bytes;
-	working_data_bytes += name_length;
+	
+	working_data_bytes += node->name_bytes;
 	working_data = (uint8_t*) realloc(working_data, working_data_bytes);
 	node = (iar_node_t*) (working_data + offset); // !!!don't forget to update this, since realloc is not guaranteed to stay in place!!!
-	memcpy(working_data + node->name_offset, name, name_length);
+	memcpy(working_data + node->name_offset, name, node->name_bytes);
 	
 	// btw, the order of what comes where is not specified by the standard
 	// as long as all offsets point to the right place, you've got nothing to worry about
