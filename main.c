@@ -6,6 +6,9 @@
 #include <dirent.h>
 #include <limits.h> // for PATH_MAX
 #include <sys/stat.h> // for mkdir
+#include <sys/mman.h> // for mmap
+#include <unistd.h>
+#include <fcntl.h>
 
 #ifndef VERSION
 	#define VERSION 0 // this is the *latest* version supported by this utility
@@ -281,7 +284,8 @@ int main(int argc, char** argv) {
 		if (verbose) {
 			printf("Reading unpack_file (%s) ...\n", unpack_file);
 		}
-				
+		
+		/*
 		FILE* fp = fopen(unpack_file, "r");
 		if (!fp) {
 			fprintf(stderr, "ERROR Couldn't open `%s`\n", unpack_file);
@@ -294,7 +298,23 @@ int main(int argc, char** argv) {
 		
 		working_data = (uint8_t*) malloc(working_data_bytes);
 		fread(working_data, working_data_bytes, 1, fp);
-		fclose(fp);
+		fclose(fp);*/
+		
+		int fd = open(unpack_file, O_RDONLY);
+		if (fd < 0) {
+			fprintf(stderr, "ERROR Couldn't open `%s`\n", unpack_file);
+			goto error_condition;
+		}
+		
+		struct stat file_info;
+		if (fstat(fd, &file_info) == -1) {
+			close(fd);
+			fprintf(stderr, "ERROR Couldn't stat `%s`\n", unpack_file);
+			goto error_condition;
+		}
+		
+		working_data_bytes = file_info.st_size;
+		working_data = mmap((void*) 0, working_data_bytes, PROT_READ, MAP_PRIVATE, fd, 0);
 		
 		if (verbose) {
 			printf("Making sure header is valid ...\n");
@@ -302,11 +322,17 @@ int main(int argc, char** argv) {
 		
 		iar_header_t* header = (iar_header_t*) working_data;
 		if (header->magic != MAGIC) {
+			munmap(working_data, working_data_bytes);
+			close(fd);
+			
 			fprintf(stderr, "ERROR Provided file is not a valid IAR file\n");
 			goto error_condition;
 		}
 		
 		if (header->version > VERSION) {
+			munmap(working_data, working_data_bytes);
+			close(fd);
+			
 			fprintf(stderr, "ERROR Provided file is of an unsupported version (%lu, this utility only supports versions up to %d)\n", header->version, VERSION);
 			goto error_condition;
 		}
@@ -319,8 +345,13 @@ int main(int argc, char** argv) {
 		}
 		
 		for (int i = 0; i < root_node->node_count; i++) if (unpack_walk(unpack_output, (iar_node_t*) (working_data + ((uint64_t*) (working_data + root_node->node_offsets_offset))[i]))) { // we need to iterate over the root node ourselves since, unlike other directory nodes, its directory has already been made
+			munmap(working_data, working_data_bytes);
+			close(fd);
 			goto error_condition; // again, no need for printing out error message; unpack_walk will do it for us
 		}
+		
+		munmap(working_data, working_data_bytes);
+		close(fd);
 	}
 	
 	// tbh i dont't really care about freeing stuff
