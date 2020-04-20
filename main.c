@@ -16,6 +16,7 @@
 
 static uint8_t verbose = 0;
 static uint64_t version = VERSION;
+static uint64_t page_bytes = 4096;
 
 #define MAGIC 0x1A4C1A4C1A4C1A4C
 
@@ -23,6 +24,7 @@ typedef struct {
 	uint64_t magic;
 	uint64_t version;
 	uint64_t root_node_offset;
+	uint64_t page_bytes;
 } iar_header_t;
 
 typedef struct {
@@ -76,7 +78,7 @@ static uint64_t pack_walk(const char* path, const char* name) { // return offset
 		}
 		
 		if (verbose) {
-			printf("Unpacking file at %s ...\n", path);
+			printf("Packing file at %s ...\n", path);
 		}
 		
 		fseek(fp, 0, SEEK_END);
@@ -85,8 +87,9 @@ static uint64_t pack_walk(const char* path, const char* name) { // return offset
 		
 		// allocate space for all the data and write to it
 		
-		node->data_offset = working_data_bytes;
-		working_data_bytes += node->data_bytes;
+		node->data_offset = (working_data_bytes & ~(page_bytes - 1)) + page_bytes;
+		working_data_bytes = node->data_offset + node->data_bytes;
+		
 		working_data = (uint8_t*) realloc(working_data, working_data_bytes);
 		node = (iar_node_t*) (working_data + offset);
 		fread(working_data + working_data_bytes - node->data_bytes, node->data_bytes, 1, fp);
@@ -204,6 +207,7 @@ int main(int argc, char** argv) {
 				printf("`--output [output path]`: Output to the given destination path.\n");
 				printf("`--verbose`: Give verbose output.\n");
 				printf("`--use [version number]`: Use specific version number.\n");
+				printf("`--page [page size in bytes]`: Use a specific page size (default is 4096, pass 1 to disable page alignment).\n");
 				
 				goto success_condition;
 				
@@ -214,6 +218,12 @@ int main(int argc, char** argv) {
 			} else if (strcmp(option, "use") == 0) {
 				if ((version = atoll(argv[++i])) > VERSION) {
 					fprintf(stderr, "ERROR Provided version number (%lu) is unsupported by this utility (this utility only supports versions up to %d)\n", version, VERSION);
+					goto error_condition;
+				}
+				
+			} else if (strcmp(option, "page") == 0) {
+				if ((page_bytes = atoll(argv[++i])) <= 0) {
+					fprintf(stderr, "ERROR Provided page size (%lu) is too small\n", page_bytes);
 					goto error_condition;
 				}
 				
@@ -254,7 +264,7 @@ int main(int argc, char** argv) {
 	}
 	
 	if (mode == MODE_PACK) {
-		iar_header_t header = { .magic = MAGIC, .version = version };
+		iar_header_t header = { .magic = MAGIC, .version = version, .page_bytes = page_bytes };
 		working_data_bytes = sizeof(header) + sizeof(iar_node_t);
 		working_data = (uint8_t*) malloc(working_data_bytes);
 		
@@ -311,6 +321,11 @@ int main(int argc, char** argv) {
 			munmap(working_data, working_data_bytes);
 			fprintf(stderr, "ERROR Provided file is not a valid IAR file\n");
 			goto error_condition;
+		}
+		
+		if (verbose) {
+			printf("File version is %lu\n", header->version);
+			printf("File page_bytes is %lu\n", header->page_bytes);
 		}
 		
 		if (header->version > VERSION) {

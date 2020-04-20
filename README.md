@@ -19,6 +19,8 @@ Here is a list of all the command-line arguments you can pass to `iar` and what 
 
 `--use [version number]`: Use specific version number.
 
+`--page [page size in bytes]`: Use a specific page size (default is 4096, pass 1 to disable page alignment).
+
 ## Building
 
 On Linux, build with
