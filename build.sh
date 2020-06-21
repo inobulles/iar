@@ -1,10 +1,10 @@
-#!/bin/bash
+#!/bin/sh
 set -e
 
-echo "Compiling source ..."
+echo "[IAR Builder] Compiling source ..."
 gcc -g main.c -o iar
 
-echo "Moving binary to /bin ..."
-sudo mv iar /bin
+echo "[IAR Builder] Installing binary ..."
+sudo mv iar /usr/local/bin
 
 exit 0
