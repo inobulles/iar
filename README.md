@@ -27,4 +27,4 @@ On Linux, build with
 
 ```$ sh build.sh```
 
-This will install necessary libraries (Debian), compile the utility and move the binary to /bin.
+This will compile the utility and move the binary to /bin.
