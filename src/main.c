@@ -60,12 +60,12 @@ int main(int argc, char** argv) {
 				unpack_file = argv[++i];
 				
 			} else {
-				fprintf(stderr, "ERROR Option '--%s' is unknown. Run 'iar --help' to see a list of available options\n", option);
+				fprintf(stderr, "ERROR Option '--%s' is unknown. Check README.md or go to https://github.com/inobulles/iar/blob/master/README.md to see a list of available options\n", option);
 				return 1;
 			}
 			
 		} else {
-			fprintf(stderr, "ERROR Unexpected argument `%s`\n", argv[i]);
+			fprintf(stderr, "ERROR Unexpected argument '%s'\n", argv[i]);
 			return 1;
 		}
 	}
