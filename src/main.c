@@ -28,18 +28,7 @@ int main(int argc, char** argv) {
 		if (strncmp(argv[i], "--", 2) == 0) { // argument is option
 			char* option = argv[i] + 2;
 			
-			if (strcmp(option, "help") == 0) {
-				printf("IAR command-line utility help\n");
-				printf("'--help': Print out help.\n");
-				printf("'--version': Print out maximum supported IAR version.\n");
-				printf("'--pack [files]': Pack the given files.\n");
-				printf("'--unpack [IAR file]': Unpack the given IAR archive file.\n");
-				printf("'--output [output path]': Output to the given destination path.\n");
-				printf("'--align [page size in bytes]': Use a specific page size (default is 4096, pass 1 to disable page alignment).\n");
-				
-				return 0;
-				
-			} else if (strcmp(option, "align") == 0) {
+			if (strcmp(option, "align") == 0) {
 				if ((page_bytes = atoll(argv[++i])) <= 1) {
 					fprintf(stderr, "ERROR Provided page size (%lu) is too small\n", page_bytes);
 					return 1;
