@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
 			char* option = argv[i] + 2;
 			
 			if (strcmp(option, "align") == 0) {
-				if ((page_bytes = atoll(argv[++i])) <= 1) {
+				if ((page_bytes = atoll(argv[++i])) < 1) {
 					fprintf(stderr, "ERROR Provided page size (%lu) is too small\n", page_bytes);
 					return 1;
 				}
