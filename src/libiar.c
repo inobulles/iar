@@ -235,7 +235,7 @@ static uint64_t pack_walk(iar_file_t* self, const char* path, const char* name) 
 
 	struct dirent* entry;
 	while ((entry = readdir(dp)) != (void*) 0) if (strcmp(entry->d_name, ".") && strcmp(entry->d_name, "..")) {
-		char* path_buffer = (char*) malloc(strlen(path) + entry->d_namlen + 2 /* strlen("/") + 1 */);
+		char* path_buffer = (char*) malloc(strlen(path) + strlen(entry->d_name) + 2 /* strlen("/") + 1 */);
 		sprintf(path_buffer, *path ? "%s/%s" : "%s%s", path, entry->d_name);
 
 		uint64_t child_offset = pack_walk(self, path_buffer, entry->d_name);
