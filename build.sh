@@ -12,6 +12,9 @@ cc -std=c99 -D_DEFAULT_SOURCE -fPIC -c src/libiar.c -o bin/libiar.o -I src/
 echo "[IAR Builder] Creating static library ..."
 ar rc bin/libiar.a bin/libiar.o
 
+echo "[IAR Builder] Indexing static library ..."
+ranlib bin/libiar.a
+
 echo "[IAR Builder] Creating shared library ..."
 ld -shared bin/libiar.o -o bin/libiar.so
 
