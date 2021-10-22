@@ -236,7 +236,8 @@ static uint64_t pack_walk(iar_file_t* self, const char* path, const char* name) 
 
 	struct dirent* entry;
 
-	extern struct dirent* __readdir(DIR* dp); // cf. 'main.c'
+	// extern struct dirent* __readdir(DIR* dp); // cf. 'main.c'
+	#define __readdir readdir
 
 	while ((entry = __readdir(dp)) != (void*) 0) {
 		if (!*entry->d_name) {
