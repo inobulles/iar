@@ -21,6 +21,10 @@ ld -shared bin/libiar.o -o bin/libiar.so
 echo "[IAR Builder] Compiling command line tool ..."
 cc -std=c99 src/main.c -o bin/iar -I src/ -L bin/ -liar
 
+if [ $# -gt 0 ]; then
+	exit 0
+fi
+
 echo "[IAR Builder] Installing libraries, binaries, and headers (/usr/local/) ..."
 
 su_list="cp $(realpath src/iar.h) /usr/local/include/"
