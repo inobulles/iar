@@ -9,6 +9,16 @@ typedef enum {
 	MODE_UNPACK,
 } mode_t;
 
+// there seems to be a bug with the 'getdirentries' syscall (554) in the FreeBSD kernel (refer to 'sys/sys/kern/vfs_syscalls.c')
+// this syscall is used by 'readdir', and, consequentially, libiar
+// for now, the solution seems to be to call a wrapper to 'readdir' from somewhere else, i.e. here
+
+#include <dirent.h>
+
+struct dirent* __readdir(DIR* dp) {
+	return readdir(dp);
+}
+
 int main(int argc, char** argv) {
 	if (argc == 1) {
 		fprintf(stderr, "ERROR No arguments provided\n");

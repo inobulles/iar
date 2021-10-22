@@ -156,7 +156,7 @@ int iar_pack(iar_file_t* self, const char* path, const char* _name) {
 
 int iar_unpack(iar_file_t* self, const char* path) {
 	mkdir(path, 0700);
-	return unpack_walk(self, path, &self->root_node);;
+	return unpack_walk(self, path, &self->root_node);
 }
 
 // static functions
@@ -193,6 +193,7 @@ static uint64_t pack_walk(iar_file_t* self, const char* path, const char* name) 
 	// so if you want, you can put the node data after the name (weirdo), whatever you want
 
 	DIR* dp = opendir(path);
+
 	if (!dp) { // handle files
 		node.is_dir = 0;
 
@@ -234,23 +235,33 @@ static uint64_t pack_walk(iar_file_t* self, const char* path, const char* name) 
 	uint64_t* node_offsets_buffer = (uint64_t*) 0;
 
 	struct dirent* entry;
-	while ((entry = readdir(dp)) != (void*) 0) if (strcmp(entry->d_name, ".") && strcmp(entry->d_name, "..")) {
-		char* path_buffer = (char*) malloc(strlen(path) + strlen(entry->d_name) + 2 /* strlen("/") + 1 */);
-		sprintf(path_buffer, *path ? "%s/%s" : "%s%s", path, entry->d_name);
 
-		uint64_t child_offset = pack_walk(self, path_buffer, entry->d_name);
-		free(path_buffer);
+	extern struct dirent* __readdir(DIR* dp); // cf. 'main.c'
 
-		if (child_offset == -2) { // is to be ignored?
-			continue;
+	while ((entry = __readdir(dp)) != (void*) 0) {
+		if (!*entry->d_name) {
+			fprintf(stderr, "FATAL Cf. 'main.c'\n");
+			exit(-1);
 		}
-		
-		node_offsets_buffer = (uint64_t*) realloc(node_offsets_buffer, (node.node_count + 1) * sizeof(uint64_t));
 
-		if ((node_offsets_buffer[node.node_count++] = child_offset) == -1) {
-			free(node_offsets_buffer);
-			closedir(dp);
-			return -1;
+		if (strcmp(entry->d_name, ".") && strcmp(entry->d_name, "..")) {
+			char* path_buffer = (char*) malloc(strlen(path) + strlen(entry->d_name) + 2 /* strlen("/") + 1 */);
+			sprintf(path_buffer, *path ? "%s/%s" : "%s%s", path, entry->d_name);
+
+			uint64_t child_offset = pack_walk(self, path_buffer, entry->d_name);
+			free(path_buffer);
+
+			if (child_offset == -2) { // is to be ignored?
+				continue;
+			}
+			
+			node_offsets_buffer = (uint64_t*) realloc(node_offsets_buffer, (node.node_count + 1) * sizeof(uint64_t));
+
+			if ((node_offsets_buffer[node.node_count++] = child_offset) == -1) {
+				free(node_offsets_buffer);
+				closedir(dp);
+				return -1;
+			}
 		}
 	}
 

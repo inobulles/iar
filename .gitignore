@@ -1,3 +1,4 @@
 output.iar
 output
 bin
+*.core
