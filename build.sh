@@ -19,7 +19,8 @@ echo "[IAR Builder] Creating shared library ..."
 ld -shared bin/libiar.o -o bin/libiar.so
 
 echo "[IAR Builder] Compiling command line tool ..."
-cc -std=c99 src/main.c -o bin/iar -I src/ -L bin/ -liar
+#cc -std=c99 src/main.c -o bin/iar -I src/ -L bin/ -liar
+cc -std=c99 src/main.c -o bin/iar -I src/ bin/libiar.a # linking statically, cf. 'src/main.c'
 
 if [ $# -gt 0 ]; then
 	exit 0
