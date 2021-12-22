@@ -22,6 +22,12 @@ Pack the given file or directory.
 ### --unpack [IAR file path]
 Unpack the given IAR file.
 
+### --json [JSON file path]
+Pack the given JSON file.
+Strings will act as files, & objects as directories.
+Any other type will emit a warning and be ignored.
+Note that this option is unavailable if you compile with `WITHOUT_JSON`.
+
 ### --output [output path]
 Output to the given destination path.
 
@@ -41,3 +47,7 @@ Set the default page size in bytes for alignment (default is 4096 bytes, or 4 Ki
 ### IAR_MAX_READ_BLOCK_SIZE
 Set the maximum read block size in bytes to be allocated (default is 65536 bytes, or 64 KiB, which is the minimum size the C99 standard guarantees `malloc` supports).
 Higher values mean better performance with large files at the expense of higher RAM usage.
+
+### WITHOUT_JSON
+Compile without support for packing JSON files.
+Also disables the `--json` flag in the command-line utility for obvious reasons.
