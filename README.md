@@ -8,7 +8,7 @@ On most Unix-like operating systems, build with:
 $ sh build.sh
 ```
 
-This will compile the library and command-line utility and move them to `/usr/local/lib/` (`/usr/local/include/` for the `iar.h` header file) and `/usr/local/bin/` respectively.
+This will compile the library and command-line utility, run a few tests, and move them to `/usr/local/lib/` (`/usr/local/include/` for the `iar.h` header file) and `/usr/local/bin/` respectively.
 
 ## Command-line arguments
 Here is a list of all the command-line arguments you can pass to `iar` and what they do:
