@@ -243,6 +243,18 @@ int iar_unpack(iar_file_t* self, const char* path) {
 
 // static functions
 
+#define NODE_OFFSET(node) \
+	(node).data_offset = (self->current_offset & ~(self->header.page_bytes - 1)) + self->header.page_bytes; \
+	self->current_offset = (node).data_offset;
+
+#define WRITE_NODE_OFFSETS(node, node_offsets_buf) \
+	uint64_t node_offsets_bytes = (node).node_count * sizeof *(node_offsets_buf); \
+	\
+	(node).node_offsets_offset = self->current_offset; \
+	self->current_offset += node_offsets_bytes; \
+	\
+	pwrite(self->fd, (node_offsets_buf), node_offsets_bytes, (node).node_offsets_offset);
+
 static inline uint64_t __create_node(iar_file_t* self, iar_node_t* node, const char* name) {
 	// create node
 	
@@ -260,17 +272,36 @@ static inline uint64_t __create_node(iar_file_t* self, iar_node_t* node, const c
 	return offset;
 }
 
-#define NODE_OFFSET(node) \
-	(node).data_offset = (self->current_offset & ~(self->header.page_bytes - 1)) + self->header.page_bytes; \
-	self->current_offset = (node).data_offset;
+static inline int __pack_stream_node(iar_file_t* self, iar_node_t* node, const char* path) {
+	// open the file
 
-#define WRITE_NODE_OFFSETS(node, node_offsets_buf) \
-	uint64_t node_offsets_bytes = (node).node_count * sizeof *(node_offsets_buf); \
-	\
-	(node).node_offsets_offset = self->current_offset; \
-	self->current_offset += node_offsets_bytes; \
-	\
-	pwrite(self->fd, (node_offsets_buf), node_offsets_bytes, (node).node_offsets_offset);
+	FILE* fp = fopen(path, "rb");
+	
+	if (!fp) {
+		fprintf(stderr, "ERROR Failed to open '%s'\n", path);
+		return -1;
+	}
+
+	// write the data
+
+	NODE_OFFSET(*node)
+	node->data_bytes = 0;
+
+	uint8_t* block = malloc(IAR_MAX_READ_BLOCK_SIZE);
+
+	while (!feof(fp)) {
+		size_t bytes_read = fread(block, 1, IAR_MAX_READ_BLOCK_SIZE, fp);
+		pwrite(self->fd, block, bytes_read, self->current_offset);
+
+		node->data_bytes += bytes_read;
+		self->current_offset += bytes_read;
+	}
+
+	free(block);
+	fclose(fp);
+
+	return 0;
+}
 
 static uint64_t pack_walk(iar_file_t* self, const char* path, const char* name) { // return offset, -1 if failure, -2 if file to be ignored
 	// make sure the file to be read is not our output (this can create infinite loops)
@@ -296,32 +327,9 @@ static uint64_t pack_walk(iar_file_t* self, const char* path, const char* name) 
 	if (!dp) { // handle files
 		node.is_dir = 0;
 
-		// open the file
-
-		FILE* fp = fopen(path, "rb");
-		
-		if (!fp) {
-			fprintf(stderr, "ERROR Failed to open '%s'\n", path);
+		if (__pack_stream_node(self, &node, path) < 0) {
 			return -1;
 		}
-
-		// write the data
-
-		NODE_OFFSET(node)
-		node.data_bytes = 0;
-
-		uint8_t* block = malloc(IAR_MAX_READ_BLOCK_SIZE);
-
-		while (!feof(fp)) {
-			size_t bytes_read = fread(block, 1, IAR_MAX_READ_BLOCK_SIZE, fp);
-			pwrite(self->fd, block, bytes_read, self->current_offset);
-
-			node.data_bytes += bytes_read;
-			self->current_offset += bytes_read;
-		}
-
-		free(block);
-		fclose(fp);
 
 		goto end;
 	}
@@ -478,14 +486,33 @@ static uint64_t pack_json_walk(iar_file_t* self, json_value_t* member, const cha
 
 	if (type == json_type_string) {
 		node.is_dir = 0;
-		json_str_t* str = payload;
+		json_str_t* _str = payload;
 
-		// write data
+		size_t len = _str->string_size;
+		char* str = (void*) _str->string;
+
+		// check if we're dealing with a path, and stream the file to our node if that's the case
+
+		#define JSON_IAR_PATH_PREFIX "__IAR_PATH__::"
+		const size_t JSON_IAR_PATH_PREFIX_LEN = strlen(JSON_IAR_PATH_PREFIX);
+
+		if (strncmp(str, JSON_IAR_PATH_PREFIX, JSON_IAR_PATH_PREFIX_LEN) == 0) {
+			str += JSON_IAR_PATH_PREFIX_LEN;
+			len -= JSON_IAR_PATH_PREFIX_LEN;
+
+			if (__pack_stream_node(self, &node, str) < 0) {
+				return -1;
+			}
+
+			goto end;
+		}
+
+		// write string data
 
 		NODE_OFFSET(node)
-		node.data_bytes = str->string_size; // includes NULL-byte
+		node.data_bytes = len; // includes NULL-byte
 		
-		pwrite(self->fd, str->string, node.data_bytes, self->current_offset);
+		pwrite(self->fd, str, node.data_bytes, self->current_offset);
 		self->current_offset += node.data_bytes;
 	
 		goto end;
@@ -496,7 +523,7 @@ static uint64_t pack_json_walk(iar_file_t* self, json_value_t* member, const cha
 
 	if (type != json_type_object) {
 		fprintf(stderr, "WARNING JSON member type is not an object or string; will be ignored\n");
-		return -2; // TODO correct?
+		return -2;
 	}
 
 	node.is_dir = 1;
