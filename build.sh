@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-rm -rf bin/
+rm -r bin/
 mkdir -p bin/
 
 # '-D_DEFAULT_SOURCE' is necessary for the 'realpath' function
@@ -21,6 +21,19 @@ ld -shared bin/libiar.o -o bin/libiar.so
 echo "[IAR Builder] Compiling command line tool ..."
 #cc -std=c99 src/main.c -o bin/iar -I src/ -L bin/ -liar
 cc -std=c99 src/main.c -o bin/iar -I src/ bin/libiar.a # linking statically, cf. 'src/main.c'
+
+echo "[IAR Builder] Running tests ..."
+
+rm -r .testfiles
+mkdir -p .testfiles
+
+for path in $(find -L tests/ -maxdepth 1 -type f -name "*.sh"); do
+	echo -n "[IAR Builder] Running $path test ..."
+	sh $path
+	echo " ✅ Passed"
+done
+
+rm -r .testfiles
 
 if [ $# -gt 0 ]; then
 	exit 0

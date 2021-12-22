@@ -79,7 +79,7 @@ int iar_write_header(iar_file_t* self);
 
 // functions for packing and unpacking iar files
 
-int iar_pack(iar_file_t* self, const char* path, const char* name); // if no name is passed ((const char*) 0), the name will automatically be generated from the path
+int iar_pack(iar_file_t* self, const char* path, const char* name); // if no name is passed (NULL), the name will automatically be generated from the path
 int iar_unpack(iar_file_t* self, const char* path);
 
 #endif

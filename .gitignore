@@ -2,3 +2,4 @@ output.iar
 output
 bin
 *.core
+.testfiles

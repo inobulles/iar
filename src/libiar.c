@@ -139,16 +139,20 @@ static uint64_t pack_walk(iar_file_t* self, const char* path, const char* name);
 static int unpack_walk(iar_file_t* self, const char* path, iar_node_t* node);
 
 int iar_pack(iar_file_t* self, const char* path, const char* _name) {
+	// get the last bit of path
+
 	char* absolute_path = realpath(path, NULL);
-	char* name = (char*) _name;
-	
+	char* name = (void*) _name;
+
 	if (!name) { // a bit ugly but it gets the job done
 		name = absolute_path;
-		const char* __name = (const char*) name;
+		const char* __name = (void*) name;
 
 		name += strlen(absolute_path) - 1;
 		for (; name >= __name && *name != '/'; name--);
 	}
+
+	// walk
 
 	self->current_offset = sizeof(self->header);
 	int error = (self->header.root_node_offset = pack_walk(self, path, ++name)) == -1;
@@ -166,7 +170,7 @@ int iar_unpack(iar_file_t* self, const char* path) {
 
 static uint64_t pack_walk(iar_file_t* self, const char* path, const char* name) { // return offset, -1 if failure, -2 if file to be ignored
 	// make sure the file to be read is not our output (this can create infinite loops)
-	
+
 	char* absolute_path = realpath(path, NULL);
 
 	if (strcmp(absolute_path, self->absolute_path) == 0) {
@@ -330,7 +334,7 @@ static int unpack_walk(iar_file_t* self, const char* path, iar_node_t* node) {
 		free(block);
 		fclose(fp);
 		
-		goto error;
+		goto success;
 	}
 
 	// handle directories
@@ -356,7 +360,10 @@ static int unpack_walk(iar_file_t* self, const char* path, iar_node_t* node) {
 	}
 
 	free(node_offsets);
-	rv = 0; // success
+
+success:
+
+	rv = 0;
 
 error:
 
