@@ -7,6 +7,7 @@ typedef enum {
 	MODE_UNKNOWN,
 	MODE_PACK,
 	MODE_UNPACK,
+	MODE_JSON,
 } mode_t;
 
 // there seems to be a bug with the 'getdirentries' syscall (554) in the FreeBSD kernel (refer to 'sys/sys/kern/vfs_syscalls.c')
@@ -32,7 +33,8 @@ int main(int argc, char** argv) {
 	char* unpack_output = "output";
 	
 	char* unpack_file = NULL;
-	char* pack_directory = NULL;
+	char* pack_dir = NULL;
+	char* pack_json = NULL;
 	
 	for (int i = 1; i < argc; i++) {
 		if (strncmp(argv[i], "--", 2)) {
@@ -65,19 +67,44 @@ int main(int argc, char** argv) {
 				fprintf(stderr, "ERROR '--unpack' has already been passed\n");
 				return -1;
 			}
+
+			if (mode == MODE_JSON) {
+				fprintf(stderr, "ERROR '--json' has already been passed\n");
+				return -1;
+			}
 			
 			mode = MODE_PACK;
-			pack_directory = argv[++i];
+			pack_dir = argv[++i];
 		}
-		
+
 		else if (strcmp(option, "unpack") == 0) {
 			if (mode == MODE_PACK) {
 				fprintf(stderr, "ERROR '--pack' has already been passed\n");
 				return -1;
 			}
-			
+
+			if (mode == MODE_JSON) {
+				fprintf(stderr, "ERROR '--json' has already been passed\n");
+				return -1;
+			}
+
 			mode = MODE_UNPACK;
 			unpack_file = argv[++i];
+		}
+
+		else if (strcmp(option, "json") == 0) {
+			if (mode == MODE_PACK) {
+				fprintf(stderr, "ERROR '--pack' has already been passed\n");
+				return -1;
+			}
+
+			if (mode == MODE_UNPACK) {
+				fprintf(stderr, "ERROR '--unpack' has already been passed\n");
+				return -1;
+			}
+
+			mode = MODE_JSON;
+
 		}
 		
 		else {
@@ -86,37 +113,55 @@ int main(int argc, char** argv) {
 		}
 	}
 	
-	iar_file_t iar;
+	iar_file_t iar = {
+		.header = {
+			.page_bytes = page_bytes,
+		},
+	};
+
+	int rv = -1;
 
 	if (mode == MODE_PACK) {
-		if (iar_open_write(&iar, pack_output)) {
-			return -1;
+		if (iar_open_write(&iar, pack_output) < 0) {
+			goto error_open;
 		}
 
-		iar.header.page_bytes = page_bytes;
-		
-		if (iar_pack(&iar, pack_directory, NULL)) {
-			iar_close(&iar);
-			return -1;
+		if (iar_pack(&iar, pack_dir, NULL) < 0) {
+			goto error;
 		}
 
 		iar_write_header(&iar);
-		iar_close(&iar);
-		
 	}
 	
 	else if (mode == MODE_UNPACK) {
-		if (iar_open_read(&iar, unpack_file)) {
-			return -1;
+		if (iar_open_read(&iar, unpack_file) < 0) {
+			goto error_open;
 		}
 
-		if (iar_unpack(&iar, unpack_output)) {
-			iar_close(&iar);
-			return -1;
+		if (iar_unpack(&iar, unpack_output) < 0) {
+			goto error;
 		}
-
-		iar_close(&iar);
 	}
 
-	return 0;
+	// else if (mode == MODE_JSON) {
+	// 	if (iar_open_write(&iar, pack_output) < 0) {
+	// 		goto error_open;
+	// 	}
+
+	// 	if (iar_pack_json(&iar, pack_json, NULL) < 0) {
+	// 		goto error;
+	// 	}
+
+	// 	iar_write_header(&iar);
+	// }
+
+	rv = 0; // success
+
+error:
+
+	iar_close(&iar);
+
+error_open:
+
+	return rv;
 }
