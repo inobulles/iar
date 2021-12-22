@@ -115,6 +115,7 @@ int main(int argc, char** argv) {
 				}
 
 				mode = MODE_PACK_JSON;
+				pack_json = argv[++i];
 			}
 		#endif
 

@@ -197,7 +197,7 @@ int iar_pack_json(iar_file_t* self, const char* path, const char* _name) {
 		goto error;
 	}
 
-	fseek(fp, SEEK_END, 0);
+	fseek(fp, 0, SEEK_END);
 	size_t bytes = ftell(fp);
 
 	char* raw = malloc(bytes + 1);
@@ -209,6 +209,13 @@ int iar_pack_json(iar_file_t* self, const char* path, const char* _name) {
 	fclose(fp);
 
 	json_value_t* json = json_parse(raw, strlen(raw));
+
+	if (!json) {
+		fprintf(stderr, "ERROR Failed to parse JSON\n");
+		goto error_json;
+	}
+
+	self->current_offset = sizeof(self->header);
 	self->header.root_node_offset = pack_json_walk(self, json, name);
 
 	if (self->header.root_node_offset == -1) {
@@ -499,7 +506,7 @@ static uint64_t pack_json_walk(iar_file_t* self, json_value_t* member, const cha
 
 	json_obj_t* obj = payload;
 
-	for (json_member_t* child = obj->start; child->next; child = child->next) {
+	for (json_member_t* child = obj->start; child; child = child->next) {
 		uint64_t child_offset = pack_json_walk(self, child->value, child->name->string);
 
 		if (child_offset == -2) { // is to be ignored?
@@ -525,6 +532,7 @@ static uint64_t pack_json_walk(iar_file_t* self, json_value_t* member, const cha
 
 end:
 
+	pwrite(self->fd, &node, sizeof node, offset);
 	return offset;
 }
 
