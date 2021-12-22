@@ -4,10 +4,13 @@ set -e
 rm -rf bin/
 mkdir -p bin/
 
+# cc_flags="-DWITHOUT_JSON"
+
 # '-D_DEFAULT_SOURCE' is necessary for the 'realpath' function
+# TODO wonder if this could be a cause of my problem with realpath? (cf. 'src/main.c')
 
 echo "[IAR Builder] Compiling library ..."
-cc -std=c99 -D_DEFAULT_SOURCE -fPIC -c src/libiar.c -o bin/libiar.o -I src/
+cc -std=c99 -D_DEFAULT_SOURCE $cc_flags -fPIC -c src/libiar.c -o bin/libiar.o -I src/
 
 echo "[IAR Builder] Creating static library ..."
 ar rc bin/libiar.a bin/libiar.o
@@ -20,7 +23,7 @@ ld -shared bin/libiar.o -o bin/libiar.so
 
 echo "[IAR Builder] Compiling command line tool ..."
 #cc -std=c99 src/main.c -o bin/iar -I src/ -L bin/ -liar
-cc -std=c99 src/main.c -o bin/iar -I src/ bin/libiar.a # linking statically, cf. 'src/main.c'
+cc -std=c99 $cc_flags src/main.c -o bin/iar -I src/ bin/libiar.a # linking statically, cf. 'src/main.c'
 
 echo "[IAR Builder] Running tests ..."
 

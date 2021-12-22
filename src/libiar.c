@@ -9,6 +9,15 @@
 #include <sys/stat.h>
 #include <sys/param.h> // for the MIN macro
 
+#if !defined(WITHOUT_JSON)
+	#include "json.h"
+
+	typedef struct json_value_s json_value_t;
+	typedef struct json_string_s json_str_t;
+	typedef struct json_object_s json_obj_t;
+	typedef struct json_object_element_s json_member_t;
+#endif
+
 // functions for opening / closing iar files
 
 int iar_open_read(iar_file_t* self, const char* path) {
@@ -134,32 +143,91 @@ int iar_write_header(iar_file_t* self) {
 }
 
 // functions for packing and unpacking iar files
+// TODO 'uint64_t' vs 'int' for return types?
 
 static uint64_t pack_walk(iar_file_t* self, const char* path, const char* name); // return offset, -1 if failure, -2 if file to be ignored
 static int unpack_walk(iar_file_t* self, const char* path, iar_node_t* node);
 
-int iar_pack(iar_file_t* self, const char* path, const char* _name) {
-	// get the last bit of path
+#if !defined(WITHOUT_JSON)
+	static uint64_t pack_json_walk(iar_file_t* self, json_value_t* member, const char* name); // return offset, -1 if failure, -2 if file to be ignored
+#endif
 
-	char* absolute_path = realpath(path, NULL);
-	char* name = (void*) _name;
+// get the last bit of path & use that as a name (if user doesn't specify a name himself)
+// a bit ugly but it gets the job done
 
-	if (!name) { // a bit ugly but it gets the job done
-		name = absolute_path;
-		const char* __name = (void*) name;
-
-		name += strlen(absolute_path) - 1;
-		for (; name >= __name && *name != '/'; name--);
+static inline char* __iar_pack_gen_name(const char* path, const char* _name) {
+	if (_name) {
+		return strdup(++_name); // so we have something to free
 	}
+	
+	char* abs_path = realpath(path, NULL);
+	char* name = abs_path + strlen(abs_path) - 1; // go to end of absolute path
+
+	for (; name >= abs_path && *name != '/'; name--); // move backwards until we find a path delimiter or we reach the beginning of the absolute path
+
+	name = strdup(++name);
+	free(abs_path);
+
+	return name;
+}
+
+int iar_pack(iar_file_t* self, const char* path, const char* _name) {
+	char* name = __iar_pack_gen_name(path, _name);
 
 	// walk
 
 	self->current_offset = sizeof(self->header);
-	int error = (self->header.root_node_offset = pack_walk(self, path, ++name)) == -1;
+	int error = (self->header.root_node_offset = pack_walk(self, path, name)) == -1;
 
-	free(absolute_path);
+	free(name);
 	return -error;
 }
+
+#if !defined(WITHOUT_JSON)
+
+int iar_pack_json(iar_file_t* self, const char* path, const char* _name) {
+	char* name = __iar_pack_gen_name(path, _name);
+
+	int rv = -1;
+
+	FILE* fp = fopen(path, "rb");
+	
+	if (!fp) {
+		fprintf(stderr, "ERROR Failed to open '%s'\n", path);
+		goto error;
+	}
+
+	fseek(fp, SEEK_END, 0);
+	size_t bytes = ftell(fp);
+
+	char* raw = malloc(bytes + 1);
+	raw[bytes] = '\0'; // just to be sure
+
+	rewind(fp);
+	fread(raw, 1, bytes, fp);
+	
+	fclose(fp);
+
+	json_value_t* json = json_parse(raw, strlen(raw));
+	self->header.root_node_offset = pack_json_walk(self, json, name);
+
+	if (self->header.root_node_offset == -1) {
+		goto error_json;
+	}
+
+	rv = 0; // success
+
+error_json:
+
+	free(json);
+
+error:
+
+	free(name);
+	return rv;
+}
+
+#endif
 
 int iar_unpack(iar_file_t* self, const char* path) {
 	mkdir(path, 0700);
@@ -167,6 +235,35 @@ int iar_unpack(iar_file_t* self, const char* path) {
 }
 
 // static functions
+
+static inline uint64_t __create_node(iar_file_t* self, iar_node_t* node, const char* name) {
+	// create node
+	
+	uint64_t offset = self->current_offset;
+	self->current_offset += sizeof *node;
+
+	// write node name
+
+	node->name_bytes = strlen(name) + 1;
+	node->name_offset = self->current_offset;
+
+	pwrite(self->fd, name, node->name_bytes, node->name_offset);
+	self->current_offset += node->name_bytes;
+
+	return offset;
+}
+
+#define NODE_OFFSET(node) \
+	(node).data_offset = (self->current_offset & ~(self->header.page_bytes - 1)) + self->header.page_bytes; \
+	self->current_offset = (node).data_offset;
+
+#define WRITE_NODE_OFFSETS(node, node_offsets_buf) \
+	uint64_t node_offsets_bytes = (node).node_count * sizeof *(node_offsets_buf); \
+	\
+	(node).node_offsets_offset = self->current_offset; \
+	self->current_offset += node_offsets_bytes; \
+	\
+	pwrite(self->fd, (node_offsets_buf), node_offsets_bytes, (node).node_offsets_offset);
 
 static uint64_t pack_walk(iar_file_t* self, const char* path, const char* name) { // return offset, -1 if failure, -2 if file to be ignored
 	// make sure the file to be read is not our output (this can create infinite loops)
@@ -179,24 +276,12 @@ static uint64_t pack_walk(iar_file_t* self, const char* path, const char* name) 
 	}
 
 	free(absolute_path);
-	
-	// create node
-	
+
 	iar_node_t node;
-	
-	uint64_t offset = self->current_offset;
-	self->current_offset += sizeof node;
-
-	// write node name
-
-	node.name_bytes = strlen(name) + 1;
-	node.name_offset = self->current_offset;
-
-	pwrite(self->fd, name, node.name_bytes, node.name_offset);
-	self->current_offset += node.name_bytes;
+	uint64_t offset = __create_node(self, &node, name);
 
 	// btw, the order of what comes where is not specified by the standard
-	// as long as all offsets point to the right place, you've got nothing to worry about
+	// so long as all offsets point to the right place, you've got nothing to worry about
 	// so if you want, you can put the node data after the name (weirdo), whatever you want
 
 	DIR* dp = opendir(path);
@@ -215,10 +300,9 @@ static uint64_t pack_walk(iar_file_t* self, const char* path, const char* name) 
 
 		// write the data
 
-		node.data_offset = (self->current_offset & ~(self->header.page_bytes - 1)) + self->header.page_bytes;
-		self->current_offset = node.data_offset;
-		
+		NODE_OFFSET(node)
 		node.data_bytes = 0;
+
 		uint8_t* block = malloc(IAR_MAX_READ_BLOCK_SIZE);
 
 		while (!feof(fp)) {
@@ -267,26 +351,24 @@ static uint64_t pack_walk(iar_file_t* self, const char* path, const char* name) 
 			continue;
 		}
 		
-		node_offsets_buf = (uint64_t*) realloc(node_offsets_buf, (node.node_count + 1) * sizeof(uint64_t));
-
-		if ((node_offsets_buf[node.node_count++] = child_offset) == -1) {
-			free(node_offsets_buf);
+		if (child_offset == -1) {
+			if (node_offsets_buf) {
+				free(node_offsets_buf);
+			}
 			
 			closedir(dp);
-			return -1;
+			return -1; // propagate error
 		}
+
+		node_offsets_buf = realloc(node_offsets_buf, (node.node_count + 1) * sizeof *node_offsets_buf);
+		node_offsets_buf[node.node_count++] = child_offset;
 	}
 
 	// write the offsets
 
-	uint64_t node_offsets_bytes = node.node_count * sizeof(uint64_t);
-	
-	node.node_offsets_offset = self->current_offset;
-	self->current_offset += node_offsets_bytes;
-
-	pwrite(self->fd, node_offsets_buf, node_offsets_bytes, node.node_offsets_offset);
-
+	WRITE_NODE_OFFSETS(node, node_offsets_buf)
 	free(node_offsets_buf);
+
 	closedir(dp);
 
 end:
@@ -312,6 +394,7 @@ static int unpack_walk(iar_file_t* self, const char* path, iar_node_t* node) {
 		// create file to write to
 
 		FILE* fp = fopen(path_buf, "wb");
+
 		if (!fp) {
 			fprintf(stderr, "ERROR Failed to open '%s' for writing\n", path_buf);
 			goto error;
@@ -372,3 +455,77 @@ error:
 
 	return rv;
 }
+
+#if !defined(WITHOUT_JSON)
+
+static uint64_t pack_json_walk(iar_file_t* self, json_value_t* member, const char* name) {
+	size_t type = member->type;
+	void* payload = member->payload;
+
+	// create node
+
+	iar_node_t node;
+	uint64_t offset = __create_node(self, &node, name);
+
+	// handle "files"
+
+	if (type == json_type_string) {
+		node.is_dir = 0;
+		json_str_t* str = payload;
+
+		// write data
+
+		NODE_OFFSET(node)
+		node.data_bytes = str->string_size; // includes NULL-byte
+		
+		pwrite(self->fd, str->string, node.data_bytes, self->current_offset);
+		self->current_offset += node.data_bytes;
+	
+		goto end;
+	}
+
+	// handle "directories"
+	// go through all object elements (keys) linked list
+
+	if (type != json_type_object) {
+		fprintf(stderr, "WARNING JSON member type is not an object or string; will be ignored\n");
+		return -2; // TODO correct?
+	}
+
+	node.is_dir = 1;
+
+	node.node_count = 0;
+	uint64_t* node_offsets_buf = NULL;
+
+	json_obj_t* obj = payload;
+
+	for (json_member_t* child = obj->start; child->next; child = child->next) {
+		uint64_t child_offset = pack_json_walk(self, child->value, child->name->string);
+
+		if (child_offset == -2) { // is to be ignored?
+			continue;
+		}
+
+		if (child_offset == -1) {
+			if (node_offsets_buf) {
+				free(node_offsets_buf);
+			}
+
+			return -1; // propagate error
+		}
+
+		node_offsets_buf = realloc(node_offsets_buf, (node.node_count + 1) * sizeof *node_offsets_buf);
+		node_offsets_buf[node.node_count++] = child_offset;
+	}
+
+	// write the offsets
+
+	WRITE_NODE_OFFSETS(node, node_offsets_buf)
+	free(node_offsets_buf);
+
+end:
+
+	return offset;
+}
+
+#endif

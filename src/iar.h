@@ -82,4 +82,8 @@ int iar_write_header(iar_file_t* self);
 int iar_pack(iar_file_t* self, const char* path, const char* name); // if no name is passed (NULL), the name will automatically be generated from the path
 int iar_unpack(iar_file_t* self, const char* path);
 
+#if !defined(WITHOUT_JSON)
+	int iar_pack_json(iar_file_t* self, const char* path, const char* name); // for the name, see above
+#endif
+
 #endif

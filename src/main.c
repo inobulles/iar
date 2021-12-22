@@ -7,7 +7,10 @@ typedef enum {
 	MODE_UNKNOWN,
 	MODE_PACK,
 	MODE_UNPACK,
-	MODE_JSON,
+
+#if !defined(WITHOUT_JSON)
+	MODE_PACK_JSON,
+#endif
 } mode_t;
 
 // there seems to be a bug with the 'getdirentries' syscall (554) in the FreeBSD kernel (refer to 'sys/sys/kern/vfs_syscalls.c')
@@ -34,7 +37,10 @@ int main(int argc, char** argv) {
 	
 	char* unpack_file = NULL;
 	char* pack_dir = NULL;
-	char* pack_json = NULL;
+
+	#if !defined(WITHOUT_JSON)
+		char* pack_json = NULL;
+	#endif
 	
 	for (int i = 1; i < argc; i++) {
 		if (strncmp(argv[i], "--", 2)) {
@@ -68,10 +74,12 @@ int main(int argc, char** argv) {
 				return -1;
 			}
 
-			if (mode == MODE_JSON) {
-				fprintf(stderr, "ERROR '--json' has already been passed\n");
-				return -1;
-			}
+			#if !defined(WITHOUT_JSON)
+				if (mode == MODE_PACK_JSON) {
+					fprintf(stderr, "ERROR '--json' has already been passed\n");
+					return -1;
+				}
+			#endif
 			
 			mode = MODE_PACK;
 			pack_dir = argv[++i];
@@ -83,30 +91,33 @@ int main(int argc, char** argv) {
 				return -1;
 			}
 
-			if (mode == MODE_JSON) {
-				fprintf(stderr, "ERROR '--json' has already been passed\n");
-				return -1;
-			}
+			#if !defined(WITHOUT_JSON)
+				if (mode == MODE_PACK_JSON) {
+					fprintf(stderr, "ERROR '--json' has already been passed\n");
+					return -1;
+				}
+			#endif
 
 			mode = MODE_UNPACK;
 			unpack_file = argv[++i];
 		}
 
-		else if (strcmp(option, "json") == 0) {
-			if (mode == MODE_PACK) {
-				fprintf(stderr, "ERROR '--pack' has already been passed\n");
-				return -1;
+		#if !defined(WITHOUT_JSON)
+			else if (strcmp(option, "json") == 0) {
+				if (mode == MODE_PACK) {
+					fprintf(stderr, "ERROR '--pack' has already been passed\n");
+					return -1;
+				}
+
+				if (mode == MODE_UNPACK) {
+					fprintf(stderr, "ERROR '--unpack' has already been passed\n");
+					return -1;
+				}
+
+				mode = MODE_PACK_JSON;
 			}
+		#endif
 
-			if (mode == MODE_UNPACK) {
-				fprintf(stderr, "ERROR '--unpack' has already been passed\n");
-				return -1;
-			}
-
-			mode = MODE_JSON;
-
-		}
-		
 		else {
 			fprintf(stderr, "ERROR Option '--%s' is unknown. Check README.md or go to https://github.com/inobulles/iar/blob/master/README.md to see a list of available options\n", option);
 			return -1;
@@ -132,7 +143,7 @@ int main(int argc, char** argv) {
 
 		iar_write_header(&iar);
 	}
-	
+
 	else if (mode == MODE_UNPACK) {
 		if (iar_open_read(&iar, unpack_file) < 0) {
 			goto error_open;
@@ -143,17 +154,19 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	// else if (mode == MODE_JSON) {
-	// 	if (iar_open_write(&iar, pack_output) < 0) {
-	// 		goto error_open;
-	// 	}
+	#if !defined(WITHOUT_JSON)
+		else if (mode == MODE_PACK_JSON) {
+			if (iar_open_write(&iar, pack_output) < 0) {
+				goto error_open;
+			}
 
-	// 	if (iar_pack_json(&iar, pack_json, NULL) < 0) {
-	// 		goto error;
-	// 	}
+			if (iar_pack_json(&iar, pack_json, NULL) < 0) {
+				goto error;
+			}
 
-	// 	iar_write_header(&iar);
-	// }
+			iar_write_header(&iar);
+		}
+	#endif
 
 	rv = 0; // success
 
