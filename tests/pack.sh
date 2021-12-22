@@ -20,8 +20,8 @@ truncate -s 128m .testfiles/root/dir/large_file
 
 bin/iar --pack .testfiles/root --output .testfiles/packed.iar
 
-if [ "$(uname)" = "FreeBSD" ]; then
-	# only on FreeBSD because GNU 'du' doesn't support the -A flag
+if [ "$(uname)" = "aquaBSD" ] || [ "$(uname)" = "FreeBSD" ]; then
+	# only on aquaBSD/FreeBSD because GNU 'du' doesn't support the -A flag
 
 	if [ "$(du -hA .testfiles/packed.iar | awk '{ print $1 }')" != "128M" ]; then
 		exit 1
