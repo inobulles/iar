@@ -45,7 +45,8 @@ fi
 echo "[IAR Builder] Installing libraries, binaries, and headers (/usr/local/) ..."
 
 su_list="cp $(realpath src/iar.h) /usr/local/include/"
-su_list="$su_list && cp $(realpath bin/libiar.a) $(realpath bin/libiar.so) /usr/local/lib/"
+# su_list="$su_list && cp $(realpath bin/libiar.a) $(realpath bin/libiar.so) /usr/local/lib/"
+su_list="$su_list && cp $(realpath bin/libiar.a) /usr/local/lib/"
 su_list="$su_list && cp $(realpath bin/iar) /usr/local/bin/"
 
 su -l root -c "$su_list"
