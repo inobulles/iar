@@ -116,7 +116,7 @@ int iar_read_node_content /* content not contents */ (iar_file_t* self, iar_node
 		fprintf(stderr, "ERROR Provided node is not a file and thus contains no data\n");
 		return -1;
 	}
-	
+
 	pread(self->fd, buf, node->data_bytes, node->data_offset);
 	return 0;
 }
@@ -159,7 +159,7 @@ static inline char* __iar_pack_gen_name(const char* path, const char* _name) {
 	if (_name) {
 		return strdup(++_name); // so we have something to free
 	}
-	
+
 	char* abs_path = realpath(path, NULL);
 	char* name = abs_path + strlen(abs_path) - 1; // go to end of absolute path
 
@@ -191,7 +191,7 @@ int iar_pack_json(iar_file_t* self, const char* path, const char* _name) {
 	int rv = -1;
 
 	FILE* fp = fopen(path, "rb");
-	
+
 	if (!fp) {
 		fprintf(stderr, "ERROR Failed to open '%s'\n", path);
 		goto error;
@@ -205,7 +205,7 @@ int iar_pack_json(iar_file_t* self, const char* path, const char* _name) {
 
 	rewind(fp);
 	fread(raw, 1, bytes, fp);
-	
+
 	fclose(fp);
 
 	json_value_t* json = json_parse(raw, strlen(raw));
@@ -257,7 +257,7 @@ int iar_unpack(iar_file_t* self, const char* path) {
 
 static inline uint64_t __create_node(iar_file_t* self, iar_node_t* node, const char* name) {
 	// create node
-	
+
 	uint64_t offset = self->current_offset;
 	self->current_offset += sizeof *node;
 
@@ -276,7 +276,7 @@ static inline int __pack_stream_node(iar_file_t* self, iar_node_t* node, const c
 	// open the file
 
 	FILE* fp = fopen(path, "rb");
-	
+
 	if (!fp) {
 		fprintf(stderr, "ERROR Failed to open '%s'\n", path);
 		return -1;
@@ -343,15 +343,7 @@ static uint64_t pack_walk(iar_file_t* self, const char* path, const char* name) 
 
 	struct dirent* entry;
 
-	// extern struct dirent* __readdir(DIR* dp); // cf. 'main.c'
-	#define __readdir readdir
-
-	while ((entry = __readdir(dp)) != NULL) {
-		if (!*entry->d_name) {
-			fprintf(stderr, "FATAL Cf. 'main.c'\n");
-			exit(-1);
-		}
-
+	while ((entry = readdir(dp)) != NULL) {
 		if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
 			continue;
 		}
@@ -365,12 +357,12 @@ static uint64_t pack_walk(iar_file_t* self, const char* path, const char* name) 
 		if (child_offset == -2) { // is to be ignored?
 			continue;
 		}
-		
+
 		if (child_offset == -1) {
 			if (node_offsets_buf) {
 				free(node_offsets_buf);
 			}
-			
+
 			closedir(dp);
 			return -1; // propagate error
 		}
@@ -431,7 +423,7 @@ static int unpack_walk(iar_file_t* self, const char* path, iar_node_t* node) {
 
 		free(block);
 		fclose(fp);
-		
+
 		goto success;
 	}
 
@@ -446,7 +438,7 @@ static int unpack_walk(iar_file_t* self, const char* path, iar_node_t* node) {
 	// create directory to write in and loop through all the nodes in it
 
 	mkdir(path_buf, 0700);
-	
+
 	for (uint64_t i = 0; i < node->node_count; i++) {
 		iar_node_t node;
 		pread(self->fd, &node, sizeof node, node_offsets[i]);
@@ -511,10 +503,10 @@ static uint64_t pack_json_walk(iar_file_t* self, json_value_t* member, const cha
 
 		NODE_OFFSET(node)
 		node.data_bytes = len; // includes NULL-byte
-		
+
 		pwrite(self->fd, str, node.data_bytes, self->current_offset);
 		self->current_offset += node.data_bytes;
-	
+
 		goto end;
 	}
 
