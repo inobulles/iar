@@ -30,7 +30,7 @@ mkdir -p .testfiles
 
 for path in $(find -L tests/ -maxdepth 1 -type f -name "*.sh"); do
 	echo -n "[IAR Builder] Running $path test ..."
-	LD_PRELOAD=bin/libiar.so sh $path
+	LD_LIBRARY_PATH=bin sh $path
 	echo " ✅ Passed"
 done
 
