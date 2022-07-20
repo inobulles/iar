@@ -11,7 +11,7 @@ typedef enum {
 #if !defined(WITHOUT_JSON)
 	MODE_PACK_JSON,
 #endif
-} mode_t;
+} iar_mode_t;
 
 int main(int argc, char** argv) {
 	if (argc == 1) {
@@ -19,7 +19,7 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 
-	mode_t mode = MODE_UNKNOWN;
+	iar_mode_t mode = MODE_UNKNOWN;
 	uint64_t page_bytes = IAR_DEFAULT_PAGE_BYTES;
 
 	char* pack_output = "output.iar";
