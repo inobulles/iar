@@ -1,5 +1,5 @@
 # iar
-The source code and build script for the IAR (Inobulles ARchive) file format library (`src/iar.c` and `src/iar.h`) and command-line utility (`src/main.c`).
+The source code and build script for the IAR (Inobulles ARchive) file format library (`src/libiar.c` & `src/iar.h`) and command-line utility (`src/main.c`).
 
 ## Building
 On most Unix-like operating systems, build with:
