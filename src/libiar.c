@@ -177,7 +177,7 @@ int iar_pack(iar_file_t* self, const char* path, const char* _name) {
 	// walk
 
 	self->current_offset = sizeof(self->header);
-	int error = (self->header.root_node_offset = pack_walk(self, path, name)) == -1;
+	int error = (self->header.root_node_offset = pack_walk(self, path, name)) == -1ull;
 
 	free(name);
 	return -error;
@@ -218,7 +218,7 @@ int iar_pack_json(iar_file_t* self, const char* path, const char* _name) {
 	self->current_offset = sizeof(self->header);
 	self->header.root_node_offset = pack_json_walk(self, json, name);
 
-	if (self->header.root_node_offset == -1) {
+	if (self->header.root_node_offset == -1ull) {
 		goto error_json;
 	}
 
@@ -354,11 +354,11 @@ static uint64_t pack_walk(iar_file_t* self, const char* path, const char* name) 
 		uint64_t child_offset = pack_walk(self, path_buf, entry->d_name);
 		free(path_buf);
 
-		if (child_offset == -2) { // is to be ignored?
+		if (child_offset == -2ull) { // is to be ignored?
 			continue;
 		}
 
-		if (child_offset == -1) {
+		if (child_offset == -1ull) {
 			if (node_offsets_buf) {
 				free(node_offsets_buf);
 			}
@@ -528,11 +528,11 @@ static uint64_t pack_json_walk(iar_file_t* self, json_value_t* member, const cha
 	for (json_member_t* child = obj->start; child; child = child->next) {
 		uint64_t child_offset = pack_json_walk(self, child->value, child->name->string);
 
-		if (child_offset == -2) { // is to be ignored?
+		if (child_offset == -2ull) { // is to be ignored?
 			continue;
 		}
 
-		if (child_offset == -1) {
+		if (child_offset == -1ull) {
 			if (node_offsets_buf) {
 				free(node_offsets_buf);
 			}

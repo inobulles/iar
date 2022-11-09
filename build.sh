@@ -4,7 +4,8 @@ set -e
 rm -rf bin/
 mkdir -p bin/
 
-# cc_flags="-DWITHOUT_JSON"
+# cc_flags="-DWITHOUT_JSON -Wall -Wextra -Werror"
+cc_flags="-Wall -Wextra -Werror"
 
 # '-D_DEFAULT_SOURCE' is necessary for the 'realpath' function
 
