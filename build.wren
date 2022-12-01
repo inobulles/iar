@@ -32,4 +32,8 @@ linker.link(lib_src.toList, [], "libiar.so", true)
 
 linker.link(cmd_src.toList, ["iar"], "iar")
 
-// TODO testing framework with bob
+// running
+
+var run = Fn.new {
+	File.exec("iar", ["--pack", "."])
+}
