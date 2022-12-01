@@ -26,9 +26,10 @@ src
 var linker = Linker.new(cc)
 
 linker.archive(lib_src.toList, "libiar.a")
-linker.link(lib_src.toList, "libiar.so", true)
+linker.link(lib_src.toList, [], "libiar.so", true)
 
 // create command-line frontend
-// TODO figure out how I want dynamic linking to work
 
-linker.link(cmd_src.toList + ["src/lib/libiar.c"], "iar")
+linker.link(cmd_src.toList, ["iar"], "iar")
+
+// TODO testing framework with bob
