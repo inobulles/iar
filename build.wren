@@ -34,26 +34,9 @@ linker.link(cmd_src.toList, ["iar"], "iar")
 
 // running
 
-var run = Fn.new {
-	File.exec("iar", ["--pack", "."])
+class Runner {
+	static run(args) {
+		System.print(args)
+		return File.exec("iar", args)
+	}
 }
-
-// testing
-
-var test_json = Fn.new {
-	-1
-}
-
-var test_pack = Fn.new {
-	-1
-}
-
-var test_version = Fn.new {
-	-1
-}
-
-var tests = [
-	test_json,
-	test_pack,
-	test_version,
-]
