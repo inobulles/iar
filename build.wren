@@ -36,9 +36,19 @@ linker.link(cmd_src.toList, ["iar"], "iar")
 
 class Runner {
 	static run(args) {
-		System.print(args)
 		return File.exec("iar", args)
 	}
+}
+
+// installation map
+// TODO for headers, we should have a special way to simply move certain files (i.e. 'iar.h' in this case) to the output directory
+
+var prefix = "/usr/local" // TODO way to discriminate between OS' - on Linux distros, this would usually be simply "/usr" instead
+
+var install = {
+	"iar":       "%(prefix)/bin/iar",
+	"libiar.a":  "%(prefix)/lib/libiar.a",
+	"libiar.so": "%(prefix)/lib/libiar.so",
 }
 
 // testing
