@@ -37,3 +37,23 @@ linker.link(cmd_src.toList, ["iar"], "iar")
 var run = Fn.new {
 	File.exec("iar", ["--pack", "."])
 }
+
+// testing
+
+var test_json = Fn.new {
+	-1
+}
+
+var test_pack = Fn.new {
+	-1
+}
+
+var test_version = Fn.new {
+	-1
+}
+
+var tests = [
+	test_json,
+	test_pack,
+	test_version,
+]
