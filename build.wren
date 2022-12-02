@@ -40,3 +40,21 @@ class Runner {
 		return File.exec("iar", args)
 	}
 }
+
+// testing
+
+class Tests {
+	static version {
+		return File.exec("iar", ["--version"])
+	}
+
+	static pack {
+		return -1
+	}
+
+	static json {
+		return -1
+	}
+}
+
+var tests = ["version", "pack", "json"]
