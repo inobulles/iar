@@ -21,6 +21,12 @@ var src = lib_src.toList + cmd_src.toList
 src
 	.each { |path| cc.compile(path) }
 
+// copy over headers
+
+File.list("src")
+	.where { |path| path.endsWith(".h") }
+	.each { |path| Resources.install(path) }
+
 // create static & dynamic libraries
 
 var linker = Linker.new(cc)
@@ -41,7 +47,6 @@ class Runner {
 }
 
 // installation map
-// TODO for headers, we should have a special way to simply move certain files (i.e. 'iar.h' in this case) to the output directory
 
 var prefix = "/usr/local" // TODO way to discriminate between OS' - on Linux distros, this would usually be simply "/usr" instead
 
@@ -49,6 +54,7 @@ var install = {
 	"iar":       "%(prefix)/bin/iar",
 	"libiar.a":  "%(prefix)/lib/libiar.a",
 	"libiar.so": "%(prefix)/lib/libiar.so",
+	"iar.h":     "%(prefix)/include/iar.h",
 }
 
 // testing
