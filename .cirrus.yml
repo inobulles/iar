@@ -1,15 +1,23 @@
 task:
   container:
     image: gcc:latest
+  bob_script:
+    - git clone git://git@github.com/inobulles/bob
+    - ( cd bob && sh build.sh && sh-bin/bob install )
   build_script:
-    - sh build.sh _ 
+    - bob test
+    - bob install
   amd64_artifacts:
     path: "bin/*"
 
 task:
   arm_container:
     image: gcc:latest
+  bob_script:
+    - git clone git://git@github.com/inobulles/bob
+    - ( cd bob && sh build.sh && sh-bin/bob install )
   build_script:
-    - sh build.sh _
+    - bob test
+    - bob install
   arm64_artifacts:
     path: "bin/*"
