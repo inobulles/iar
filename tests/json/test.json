@@ -5,6 +5,6 @@
 	"test": {
 		"subdirectory": "This kind of acts like a subdirectory",
 		"etc": "and so forth",
-		"large_file": "__IAR_PATH__::bin/iar"
+		"large_file": "__IAR_PATH__::iar"
 	}
 }
