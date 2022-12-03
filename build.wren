@@ -59,11 +59,11 @@ class Tests {
 	}
 
 	static pack {
-		return -1
+		return File.exec("test.sh")
 	}
 
 	static json {
-		return -1
+		return File.exec("test.sh")
 	}
 }
 
