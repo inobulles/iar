@@ -21,12 +21,6 @@ var src = lib_src.toList + cmd_src.toList
 src
 	.each { |path| cc.compile(path) }
 
-// copy over headers
-
-File.list("src")
-	.where { |path| path.endsWith(".h") }
-	.each { |path| Resources.install(path) }
-
 // create static & dynamic libraries
 
 var linker = Linker.new(cc)
@@ -37,6 +31,12 @@ linker.link(lib_src.toList, [], "libiar.so", true)
 // create command-line frontend
 
 linker.link(cmd_src.toList, ["iar"], "iar")
+
+// copy over headers
+
+File.list("src")
+	.where { |path| path.endsWith(".h") }
+	.each { |path| Resources.install(path) }
 
 // running
 
