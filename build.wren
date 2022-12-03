@@ -36,7 +36,7 @@ linker.link(cmd_src.toList, ["iar"], "iar")
 
 File.list("src")
 	.where { |path| path.endsWith(".h") }
-	.each { |path| Resources.install(path) }
+	.each  { |path| Resources.install(path) }
 
 // running
 

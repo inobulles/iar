@@ -5,8 +5,7 @@ task:
     - git clone https://github.com/inobulles/bob
     - ( cd bob && sh build.sh && sh-bin/bob install )
   build_script:
-    - bob test
-    - bob install
+    - bob test install
   amd64_artifacts:
     path: "bin/*"
 
@@ -17,7 +16,6 @@ task:
     - git clone https://github.com/inobulles/bob
     - ( cd bob && sh build.sh && sh-bin/bob install )
   build_script:
-    - bob test
-    - bob install
+    - bob test install
   arm64_artifacts:
     path: "bin/*"
