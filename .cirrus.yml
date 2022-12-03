@@ -2,7 +2,7 @@ task:
   container:
     image: gcc:latest
   bob_script:
-    - git clone git://git@github.com/inobulles/bob
+    - git clone git@github.com:inobulles/bob
     - ( cd bob && sh build.sh && sh-bin/bob install )
   build_script:
     - bob test
@@ -14,7 +14,7 @@ task:
   arm_container:
     image: gcc:latest
   bob_script:
-    - git clone git://git@github.com/inobulles/bob
+    - git clone git@github.com:inobulles/bob
     - ( cd bob && sh build.sh && sh-bin/bob install )
   build_script:
     - bob test
