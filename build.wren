@@ -48,13 +48,11 @@ class Runner {
 
 // installation map
 
-var prefix = "/usr/local" // TODO way to discriminate between OS' - on Linux distros, this would usually be simply "/usr" instead
-
 var install = {
-	"iar":       "%(prefix)/bin/iar",
-	"libiar.a":  "%(prefix)/lib/libiar.a",
-	"libiar.so": "%(prefix)/lib/libiar.so",
-	"iar.h":     "%(prefix)/include/iar.h",
+	"iar":       "%(OS.prefix())/bin/iar",
+	"libiar.a":  "%(OS.prefix())/lib/libiar.a",
+	"libiar.so": "%(OS.prefix())/lib/libiar.so",
+	"iar.h":     "%(OS.prefix())/include/iar.h",
 }
 
 // testing
