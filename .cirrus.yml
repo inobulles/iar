@@ -1,6 +1,8 @@
 task:
   container:
     image: gcc:latest
+  env:
+    CLICOLOR_FORCE:
   bob_script:
     - git clone https://github.com/inobulles/bob
     - ( cd bob && sh build.sh && sh-bin/bob install )
@@ -12,6 +14,8 @@ task:
 task:
   arm_container:
     image: gcc:latest
+  env:
+    CLICOLOR_FORCE:
   bob_script:
     - git clone https://github.com/inobulles/bob
     - ( cd bob && sh build.sh && sh-bin/bob install )
