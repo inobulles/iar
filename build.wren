@@ -41,9 +41,7 @@ File.list("src")
 // running
 
 class Runner {
-	static run(args) {
-		return File.exec("iar", args)
-	}
+	static run(args) { File.exec("iar", args) }
 }
 
 // installation map
@@ -58,17 +56,9 @@ var install = {
 // testing
 
 class Tests {
-	static version {
-		return File.exec("iar", ["--version"])
-	}
-
-	static pack {
-		return File.exec("test.sh")
-	}
-
-	static json {
-		return File.exec("test.sh")
-	}
+	static version { File.exec("iar", ["--version"]) }
+	static pack { File.exec("test.sh") }
+	static json { File.exec("test.sh") }
 }
 
 var tests = ["version", "pack", "json"]
