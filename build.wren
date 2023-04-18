@@ -47,10 +47,10 @@ class Runner {
 // installation map
 
 var install = {
-	"iar":       "%(Meta.prefix())/bin/iar",
-	"libiar.a":  "%(Meta.prefix())/lib/libiar.a",
-	"libiar.so": "%(Meta.prefix())/lib/libiar.so",
-	"iar.h":     "%(Meta.prefix())/include/iar.h",
+	"iar":       "bin/iar",
+	"libiar.a":  "lib/libiar.a",
+	"libiar.so": "lib/libiar.so",
+	"iar.h":     "include/iar.h",
 }
 
 // testing
