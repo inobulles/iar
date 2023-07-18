@@ -85,23 +85,28 @@ void iar_close(iar_file_t* self) {
 
 // functions for reading iar files
 
-uint64_t iar_find_node(iar_file_t* self, iar_node_t* node, const char* name, iar_node_t* parent) {
-	uint64_t node_offset_bytes = parent->node_count * sizeof(uint64_t);
-	uint64_t* node_offsets = malloc(node_offset_bytes);
+uint64_t iar_find_node(iar_file_t* self, iar_node_t* node, char const* name, iar_node_t* parent) {
+	// read what we need from parent before anything else, because there's a chance parent == node
 
-	pread(self->fd, node_offsets, node_offset_bytes, parent->node_offsets_offset);
+	uint64_t const parent_node_count = parent->node_count;
+	uint64_t const parent_node_offsets_offset = parent->node_offsets_offset;
+
+	uint64_t const node_offset_bytes = parent_node_count * sizeof(uint64_t);
+	uint64_t* const node_offsets = malloc(node_offset_bytes);
+
+	pread(self->fd, node_offsets, node_offset_bytes, parent_node_offsets_offset);
 
 	uint64_t index = 0;
 
-	for (; index < parent->node_count; index++) {
+	for (; index < parent_node_count; index++) {
 		iar_node_t child_node;
-		pread(self->fd, &child_node, sizeof(child_node), node_offsets[index]);
+		pread(self->fd, &child_node, sizeof child_node, node_offsets[index]);
 
-		char* node_name = malloc(child_node.name_bytes);
+		char* const node_name = malloc(child_node.name_bytes);
 		pread(self->fd, node_name, child_node.name_bytes, child_node.name_offset);
 
 		if (strncmp(name, node_name, child_node.name_bytes) == 0) {
-			memcpy(node, &child_node, sizeof(child_node));
+			memcpy(node, &child_node, sizeof child_node);
 			goto found;
 		}
 	}
