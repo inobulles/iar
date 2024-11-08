@@ -4,7 +4,7 @@ The source code for the IAR (Inobulles ARchive) file format library and command-
 
 ## Building
 
-With [Bob the Builder](https://github.com/inobulles/bob) installed:
+With [Bob the Builder v0.1.0](https://github.com/inobulles/bob) installed:
 
 ```console
 bob test install
