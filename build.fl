@@ -1,0 +1,36 @@
+# This Source Form is subject to the terms of the AQUA Software License,
+# v. 1.0. Copyright (c) 2024 Aymeric Wibo
+
+import bob
+
+# C compilation.
+
+let lib_src = Fs.list("src/lib").where(|path| path.endswith(".c"))
+let cmd_src = Fs.list("src/cmd").where(|path| path.endswith(".c"))
+
+let cc = Cc(["-Isrc", "-fPIC", "-std=c99", "-Wall", "-Wextra", "-Werror"])
+
+# TODO Check that the lib and cmd sources are actually being compiled in parallel.
+
+let lib_obj = cc.compile(lib_src)
+let cmd_obj = cc.compile(cmd_src)
+
+# Create static & dynamic libraries and command-line frontend executable.
+
+let lib_linker = Linker([])
+let archive = Linker([]).archive(lib_obj)
+let dyn_lib = Linker(["-shared"]).link(lib_obj)
+let cmd = Linker(["-liar"]).link(cmd_obj)
+
+# Installation map.
+
+install = {
+	cmd: "bin/iar",
+	archive: "lib/libiar.a",
+	dyn_lib: "lib/libiar.so",
+	"src/iar.h": "include/iar.h",
+}
+
+# Default runner.
+
+run = ["iar"]
