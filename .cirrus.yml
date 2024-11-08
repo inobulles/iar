@@ -4,7 +4,7 @@ task:
   env:
     CLICOLOR_FORCE:
   bob_script:
-    - git clone https://github.com/inobulles/bob --depth 1 --branch main
+    - git clone https://github.com/inobulles/bob --depth 1 --branch v0.1.0
     - ( cd bob && sh build.sh && sh-bin/bob install )
   build_script:
     - bob test install
@@ -17,7 +17,7 @@ task:
   env:
     CLICOLOR_FORCE:
   bob_script:
-    - git clone https://github.com/inobulles/bob --depth 1 --branch main
+    - git clone https://github.com/inobulles/bob --depth 1 --branch v0.1.0
     - ( cd bob && sh build.sh && sh-bin/bob install )
   build_script:
     - bob test install
