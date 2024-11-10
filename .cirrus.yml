@@ -8,7 +8,7 @@ task:
     - git clone https://github.com/inobulles/bob --depth 1 --branch main
     - ( cd bob && sh bootstrap.sh && .bootstrap/bob install )
   build_script:
-    - bob install
+    - bob -o /usr install
   test_script:
     - iar --version
   amd64_artifacts:
@@ -24,7 +24,7 @@ task:
     - git clone https://github.com/inobulles/bob --depth 1 --branch main
     - ( cd bob && sh bootstrap.sh && .bootstrap/bob install )
   build_script:
-    - bob install
+    - bob -o /usr install
   test_script:
     - iar --version
   arm64_artifacts:
