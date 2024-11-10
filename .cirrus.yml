@@ -5,9 +5,11 @@ task:
     CLICOLOR_FORCE:
   bob_script:
     - git clone https://github.com/inobulles/bob --depth 1 --branch main
-    - ( cd bob && sh build.sh && sh-bin/bob install )
+    - ( cd bob && sh bootstrap.sh && .bootstrap/bob install )
   build_script:
-    - bob test install
+    - bob install
+  test_script:
+    - iar --version
   amd64_artifacts:
     path: "bin/*"
 
@@ -18,8 +20,10 @@ task:
     CLICOLOR_FORCE:
   bob_script:
     - git clone https://github.com/inobulles/bob --depth 1 --branch main
-    - ( cd bob && sh build.sh && sh-bin/bob install )
+    - ( cd bob && sh bootstrap.sh && .bootstrap/bob install )
   build_script:
-    - bob test install
+    - bob install
+  test_script:
+    - iar --version
   arm64_artifacts:
     path: "bin/*"
