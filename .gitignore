@@ -4,3 +4,4 @@ bin
 *.core
 .testfiles
 *.sw[op]
+.bob
