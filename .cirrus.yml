@@ -4,11 +4,13 @@ task:
   env:
     CLICOLOR_FORCE:
     ASAN_OPTIONS: detect_leaks=0
+    LD_LIBRARY_PATH: /usr/local/lib
   bob_script:
     - git clone https://github.com/inobulles/bob --depth 1 --branch main
     - ( cd bob && sh bootstrap.sh && .bootstrap/bob install )
   build_script:
-    - bob -o /usr install
+    - bob install
+    - find /usr/local
   test_script:
     - iar --version
   amd64_artifacts:
@@ -20,11 +22,13 @@ task:
   env:
     CLICOLOR_FORCE:
     ASAN_OPTIONS: detect_leaks=0
+    LD_LIBRARY_PATH: /usr/local/lib
   bob_script:
     - git clone https://github.com/inobulles/bob --depth 1 --branch main
     - ( cd bob && sh bootstrap.sh && .bootstrap/bob install )
   build_script:
-    - bob -o /usr install
+    - bob install
+    - find /usr/local
   test_script:
     - iar --version
   arm64_artifacts:
