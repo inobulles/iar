@@ -17,7 +17,6 @@ let cmd_obj = cc.compile(cmd_src)
 
 # Create static & dynamic libraries and command-line frontend executable.
 
-let lib_linker = Linker([])
 let archive = Linker([]).archive(lib_obj)
 let dyn_lib = Linker(["-shared"]).link(lib_obj)
 let cmd = Linker(["-liar"]).link(cmd_obj)
