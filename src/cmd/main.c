@@ -1,5 +1,6 @@
 #include <iar.h>
 
+#include <inttypes.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -44,7 +45,7 @@ int main(int argc, char** argv) {
 			page_bytes = atoll(argv[++i]);
 
 			if (page_bytes < 1) {
-				fprintf(stderr, "ERROR Provided page size (%lu) is too small\n", page_bytes);
+				fprintf(stderr, "ERROR Provided page size (%" PRId64 ") is too small\n", page_bytes);
 				return -1;
 			}
 		}

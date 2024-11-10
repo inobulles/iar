@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <inttypes.h>
 #include <sys/mman.h>
 #include <errno.h>
 #include <dirent.h>
@@ -40,12 +41,12 @@ int iar_open_read(iar_file_t* self, const char* path) {
 	pread(self->fd, &self->header, sizeof(self->header), 0); // read the iar header
 
 	if (self->header.magic != IAR_MAGIC) {
-		fprintf(stderr, "ERROR '%s' is not a valid IAR file (magic = 0x%lx)\n", path, self->header.magic);
+		fprintf(stderr, "ERROR '%s' is not a valid IAR file (magic = 0x%" PRIx64 ")\n", path, self->header.magic);
 		goto error;
 	}
 
 	if (self->header.version > IAR_VERSION) {
-		fprintf(stderr, "ERROR '%s' is of an unsupported version (%lu) (latest supported version is %lu)\n", path, self->header.version, IAR_VERSION);
+		fprintf(stderr, "ERROR '%s' is of an unsupported version (%" PRId64 ") (latest supported version is %lu)\n", path, self->header.version, IAR_VERSION);
 		goto error;
 	}
 
